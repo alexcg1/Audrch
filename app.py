@@ -1,25 +1,29 @@
-from jina import DocumentArray, Flow
+from jina import Flow
+import pretty_errors
+from docarray import DocumentArray
 
-from jina.types.document.generators import from_files
+DATA_DIR = "./data/esc-50/audio/"
 
 
-def check_query(resp):
-    for d in resp.docs:
-        print(f"{d.uri}, {len(d.chunks)}")
-        for m in d.matches:
-            print(f'+- {m.uri}: {m.scores["cosine"].value:.6f}, {m.tags}')
+def load_data(data_dir=DATA_DIR, targets=[0], extension="wav"):
+    final_docarray = DocumentArray()
+    for target in targets:
+        docs_source = f"{data_dir}/*-{str(target)}.{extension}"
+        docs = DocumentArray.from_files(docs_source)
+        final_docarray.extend(docs)
+
+    return final_docarray
 
 
 def main():
-    docs = DocumentArray(from_files("data/*.mp3"))
+    docs = load_data()
 
-    f = Flow.load_config("flow.yml")
-    with f:
-        f.post(on="/index", inputs=docs)
-        f.post(on="/search", inputs=docs, on_done=check_query)
-        f.protocol = "http"
-        f.cors = True
-        f.block()
+    flow = Flow.load_config("flow.yml")
+    with flow:
+        index = flow.index(inputs=docs, show_progress=True, return_results=True)
+        flow.protocol = "http"
+        flow.cors = True
+        flow.block()
 
 
 if __name__ == "__main__":
