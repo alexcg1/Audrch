@@ -20,4 +20,5 @@ if uploaded_file is not None:
 
     for match in matches:
         path = os.path.join(current_abs_path, "..", match["uri"])
+        st.markdown(f"**{match['uri']}**")
         st.audio(path)
